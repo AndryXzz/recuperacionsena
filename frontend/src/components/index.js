@@ -1,0 +1,8 @@
+export { default as Topbar } from './Topbar'
+export { default as Login } from './Login'
+export { default as Page } from './Page'
+export { default as Register } from './Register'
+export { default as SideBar } from './SideBar'
+export { default as ContainerPages } from './ContainerPages'
+export { default as Dashboard } from './Dashboard'
+export { default as UploaderFile } from './UploaderFile'

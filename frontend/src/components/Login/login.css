@@ -1,0 +1,27 @@
+.rootlogin {
+    width: -webkit-fill-available;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btnLogin {
+    margin-top: 5px;
+    width: 40%;
+}
+
+.formLogin {
+    flex-direction: column;
+    background: #fff;
+    padding: 20px;
+    min-height: 40%;
+    display: flex;
+    width: 50%;
+    align-items: center;
+    border-radius: 3px;
+}
+
+.formTitle {
+    margin-bottom: 20px;
+}

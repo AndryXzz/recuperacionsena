@@ -1,0 +1,1 @@
+export { ContainerPages as default } from './ContainerPages';

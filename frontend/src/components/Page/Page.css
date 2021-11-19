@@ -1,0 +1,16 @@
+.topbar {
+    background: #355bae;
+    color: #fff;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: -webkit-fill-available;
+    display: flex;
+    padding: 8px;
+}
+
+.mainContainer {
+    flex: 1 1 auto;
+    display: flex;
+    overflow: hidden;
+}
