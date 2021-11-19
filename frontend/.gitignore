@@ -8,6 +8,7 @@
 .pnp.js
 .env
 # testing
+public/pdfs/*
 /coverage
 /.vscode
 # production

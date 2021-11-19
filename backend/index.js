@@ -100,7 +100,7 @@ app.post('/createGUIDE', (req, res) => {
   var Fs = require('fs')
   let mimeType = guideDoc.evidence.match(/[^:]\w+\/[\w-+\d.]+(?=;|,)/)[0];
   const nameFile = `${name.toUpperCase()}-${moment().format('YYYY_MM_DD_HH_mm')}.pdf`
-  const directory = `${__dirname}/../public/${nameFile}`;
+  const directory = `${__dirname}/../frontend/public/pdfs/${nameFile}`;
 
   Fs.writeFile(directory, guideDoc.evidence.replace(`data:${mimeType};base64`, ""), { encoding: "base64" }, function () {
 
@@ -141,6 +141,25 @@ app.post('/getGuidesPerInstructor', (req, res) => {
   })
 })
 
+app.post('/getGuidesPerLearner', (req, res) => {
+  const sqlSearch = `
+  SELECT g.id AS idGuide, u.id,u.idClass, g.name, g.description, g.themes, g.duration,g.guideDoc,
+  CONCAT(u.firstName, ' ', u.lastName, ' - (',c.numberClass,')') AS selected
+  FROM recuperacionsena.guides AS g
+  INNER JOIN users AS u ON u.id =g.idUserassigned
+  INNER JOIN classes AS c ON c.id = g.idClass
+  WHERE g.idUserassigned = ?;`
+  const { idUser } = req.body
+  db.query(sqlSearch, [idUser], (err, response) => {
+    if (err) {
+      console.log('err:', err);
+      res.status(500, err)
+      res.send(err)
+    }
+    res.send(response)
+
+  })
+})
 
 app.post('/editGUIDE', (req, res) => {
   const { name, description, themes, duration, guideDoc, idUserAssigned, idClass, idInstructor, lastFile, idGuide } = req.body
@@ -148,9 +167,9 @@ app.post('/editGUIDE', (req, res) => {
   var Fs = require('fs')
   let mimeType = guideDoc.evidence.match(/[^:]\w+\/[\w-+\d.]+(?=;|,)/)[0];
   const nameFile = `${name.toUpperCase()}-${moment().format('YYYY_MM_DD_HH_mm')}.pdf`
-  const directory = `${__dirname}/../public/${nameFile}`;
+  const directory = `${__dirname}/../frontend/public/pdfs/${nameFile}`;
 
-  Fs.unlink(`${__dirname}/../public/${lastFile}`, (err) => {
+  Fs.unlink(`${__dirname}/../frontend/public/pdfs/${lastFile}`, (err) => {
     console.log("deleted an PDF");
   })
   Fs.writeFile(directory, guideDoc.evidence.replace(`data:${mimeType};base64`, ""), { encoding: "base64" }, function () {
@@ -180,7 +199,7 @@ app.post('/deleteGUIDE', (req, res) => {
   const { idGuide, nameFile } = req.body
   var Fs = require('fs')
 
-  Fs.unlink(`${__dirname}/../public/${nameFile}`, (err) => {
+  Fs.unlink(`${__dirname}/../frontend/public/pdfs/${nameFile}`, (err) => {
     console.log("deleted an PDF");
   })
 

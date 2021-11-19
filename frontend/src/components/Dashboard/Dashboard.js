@@ -7,7 +7,6 @@ import Swal from 'sweetalert2'
 import CreateRoundedIcon from '@mui/icons-material/CreateRounded';
 import DeleteForeverRoundedIcon from '@mui/icons-material/DeleteForeverRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
-import { Document, Page, pdfjs } from 'react-pdf';
 
 export const Dashboard = ({ user }) => {
   const [classesGroups, setClassesGroups] = useState([])
@@ -34,7 +33,12 @@ export const Dashboard = ({ user }) => {
     const getData = async () => {
       const fichas = await Axios.post('http://localhost:3001/getClassesGroups', { idUser: user.id });
       setClassesGroups(fichas.data);
-      const guias = await Axios.post('http://localhost:3001/getGuidesPerInstructor', { idUser: user.id });
+      let guias
+      if (user.role === 'Instructor') {
+        guias = await Axios.post('http://localhost:3001/getGuidesPerInstructor', { idUser: user.id });
+      } else {
+        guias = await Axios.post('http://localhost:3001/getGuidesPerLearner', { idUser: user.id });
+      }
       setGuides(guias.data)
     };
     getData()
@@ -154,9 +158,7 @@ export const Dashboard = ({ user }) => {
 
 
   const handlePreviewPDF = (nameFile) => {
-    // console.log(`C:/Users/crisa/OneDrive/Escritorio/recuperacionsena/public/${nameFile}`);
-    console.log(`http://localhost:3000/public/${nameFile}`);
-    setPreviewPDF({ visible: true, route: `http://localhost:3000/public/${nameFile}` })
+    setPreviewPDF({ visible: true, route: nameFile })
   }
 
   const handleEditGuide = (data) => {
@@ -229,137 +231,147 @@ export const Dashboard = ({ user }) => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12} md={7}>
+      <Grid item xs={12} md={user.role === 'Instructor' ? 7 : 12}>
         <Box className="cardContainerDash">
           <Typography variant="h5" sx={{ textAlign: 'center' }}>
             Guías de aprendizaje
           </Typography>
           <hr />
           <Box sx={{ textAlign: 'end', margin: '10px 0px' }}>
-            <Button variant="contained" color="secondary" size="small" onClick={handleOpenCloseNewGuide}>
-              Crear guía
-            </Button>
-            <Dialog
-              open={newGuide.visible}
-              fullWidth="md"
-            >
-              <DialogTitle>
-                <Typography variant="h5" color="primary">
-                  {newGuide.edit ? 'Editar' : 'Crear nueva'} guía
-                </Typography>
-              </DialogTitle>
-              <DialogContent>
-                <TextField
-                  label="Nombre de la guía"
-                  name="name"
-                  margin="dense"
-                  size="small"
-                  value={newGuide.name}
-                  onChange={handleChangeValueGuide}
-                  fullWidth
-                />
-                <TextField
-                  label="Descripción"
-                  name="description"
-                  margin="dense"
-                  size="small"
-                  value={newGuide.description}
-                  onChange={handleChangeValueGuide}
-                  fullWidth
-                />
-                <TextField
-                  label="temas"
-                  name="themes"
-                  margin="dense"
-                  size="small"
-                  value={newGuide.themes || ''}
-                  onChange={handleChangeValueGuide}
-                  fullWidth
-                />
-                <TextField
-                  label="duración en horas"
-                  name="duration"
-                  margin="dense"
-                  size="small"
-                  value={newGuide.duration || ''}
-                  inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                  onChange={handleChangeValueGuide}
-                  fullWidth
-                />
-                <FormControl component="fieldset">
-                  <FormLabel component="legend">Esta guía se asignará</FormLabel>
-
-                  <RadioGroup
-                    row aria-label="assignTo"
-                    name="assignTo"
-                    value={assignedTo}
-                    onChange={(e) => { setAssignedTo(e.target.value) }}
-                  >
-                    <FormControlLabel value="allClass" label="A una ficha" control={<Radio />} />
-                    <FormControlLabel value="usr" label="A un aprendiz" control={<Radio />} />
-                  </RadioGroup>
-                </FormControl>
-                {assignedTo === 'allClass' &&
-                  <TextField
-                    label="Número de ficha"
-                    name="classNumber"
-                    margin="dense"
-                    size="small"
-                    value={newGuide.classNumber}
-                    select
-                    onChange={handleChangeValueGuide}
-                    fullWidth
-                  >
-                    {classesGroups.map((item) => (
-                      <MenuItem value={item.id}>{item.nameClass} - {item.numberClass}</MenuItem>
-                    ))}
-                  </TextField>
-                }
-                {assignedTo === 'usr' &&
-                  <TextField
-                    label="Aprendiz a asignar"
-                    name="usr"
-                    margin="dense"
-                    size="small"
-                    value={newGuide.usr}
-                    select
-                    onChange={handleChangeValueGuide}
-                    fullWidth
-                  >
-                    {usrs.map((item) => (
-                      <MenuItem value={item.id}>{item.firstName?.toUpperCase()} {item.lastName?.toUpperCase()} - {item.nameClass} ({item.numberClass})</MenuItem>
-                    ))}
-                  </TextField>
-                }
-                <Box sx={{ margin: '15px 0px' }}>
-                  <UploaderFile
-                    file={file}
-                    setFile={setFile}
-                    title="PDF"
-                  />
+            {user.role === 'Instructor' &&
+              <>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">
+                    {guides?.length} registros encontrados
+                  </Typography>
+                  <Button variant="contained" color="secondary" size="small" onClick={handleOpenCloseNewGuide}>
+                    Crear guía
+                  </Button>
                 </Box>
-
-
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={handleOpenCloseNewGuide} color="error" variant="contained" size="small">
-                  Cancelar
-                </Button>
-                <Button onClick={() => { newGuide.edit ? editGuide() : saveGuide() }} color="primary" variant="contained" size="small"
-                  disabled={
-                    !newGuide.name ||
-                      !newGuide.description ||
-                      !newGuide.themes ||
-                      !newGuide.duration ||
-                      (assignedTo === 'allClass' ? (newGuide.classNumber ? false : true) : (newGuide.usr ? false : true)) ||
-                      !file.evidence
-                      ? true : false
-                  }
+                <Dialog
+                  open={newGuide.visible}
+                  fullWidth="md"
                 >
-                  {newGuide.edit ? 'Editar' : 'Crear'} Guía
-                </Button>
-              </DialogActions>
-            </Dialog>
+                  <DialogTitle>
+                    <Typography variant="h5" color="primary">
+                      {newGuide.edit ? 'Editar' : 'Crear nueva'} guía
+                    </Typography>
+                  </DialogTitle>
+                  <DialogContent>
+                    <TextField
+                      label="Nombre de la guía"
+                      name="name"
+                      margin="dense"
+                      size="small"
+                      value={newGuide.name}
+                      onChange={handleChangeValueGuide}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Descripción"
+                      name="description"
+                      margin="dense"
+                      size="small"
+                      value={newGuide.description}
+                      onChange={handleChangeValueGuide}
+                      fullWidth
+                    />
+                    <TextField
+                      label="temas"
+                      name="themes"
+                      margin="dense"
+                      size="small"
+                      value={newGuide.themes || ''}
+                      onChange={handleChangeValueGuide}
+                      fullWidth
+                    />
+                    <TextField
+                      label="duración en horas"
+                      name="duration"
+                      margin="dense"
+                      size="small"
+                      value={newGuide.duration || ''}
+                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                      onChange={handleChangeValueGuide}
+                      fullWidth
+                    />
+                    <FormControl component="fieldset">
+                      <FormLabel component="legend">Esta guía se asignará</FormLabel>
+
+                      <RadioGroup
+                        row aria-label="assignTo"
+                        name="assignTo"
+                        value={assignedTo}
+                        onChange={(e) => { setAssignedTo(e.target.value) }}
+                      >
+                        <FormControlLabel value="allClass" label="A una ficha" control={<Radio />} />
+                        <FormControlLabel value="usr" label="A un aprendiz" control={<Radio />} />
+                      </RadioGroup>
+                    </FormControl>
+                    {assignedTo === 'allClass' &&
+                      <TextField
+                        label="Número de ficha"
+                        name="classNumber"
+                        margin="dense"
+                        size="small"
+                        value={newGuide.classNumber}
+                        select
+                        onChange={handleChangeValueGuide}
+                        fullWidth
+                      >
+                        {classesGroups.map((item) => (
+                          <MenuItem value={item.id}>{item.nameClass} - {item.numberClass}</MenuItem>
+                        ))}
+                      </TextField>
+                    }
+                    {assignedTo === 'usr' &&
+                      <TextField
+                        label="Aprendiz a asignar"
+                        name="usr"
+                        margin="dense"
+                        size="small"
+                        value={newGuide.usr}
+                        select
+                        onChange={handleChangeValueGuide}
+                        fullWidth
+                      >
+                        {usrs.map((item) => (
+                          <MenuItem value={item.id}>{item.firstName?.toUpperCase()} {item.lastName?.toUpperCase()} - {item.nameClass} ({item.numberClass})</MenuItem>
+                        ))}
+                      </TextField>
+                    }
+                    <Box sx={{ margin: '15px 0px' }}>
+                      <UploaderFile
+                        file={file}
+                        setFile={setFile}
+                        title="PDF"
+                      />
+                    </Box>
+
+
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={handleOpenCloseNewGuide} color="error" variant="contained" size="small">
+                      Cancelar
+                    </Button>
+                    <Button onClick={() => { newGuide.edit ? editGuide() : saveGuide() }} color="primary" variant="contained" size="small"
+                      disabled={
+                        !newGuide.name ||
+                          !newGuide.description ||
+                          !newGuide.themes ||
+                          !newGuide.duration ||
+                          (assignedTo === 'allClass' ? (newGuide.classNumber ? false : true) : (newGuide.usr ? false : true)) ||
+                          !file.evidence
+                          ? true : false
+                      }
+                    >
+                      {newGuide.edit ? 'Editar' : 'Crear'} Guía
+                    </Button>
+                  </DialogActions>
+                </Dialog>
+              </>
+            }
+
           </Box>
           <TableContainer component={Paper}>
             <Table size="small">
@@ -378,23 +390,9 @@ export const Dashboard = ({ user }) => {
                   open={previewPDF.visible}
                   onClose={() => setPreviewPDF({ visible: false })}
                   fullWidth="md"
-                  sx={{ height: '100%' }}
                 >
-                  <DialogContent>
-
-
-
-
-                    <embed src={previewPDF.route} type="application/pdf"></embed>
-                    {console.log('🚀 ~ file: Dashboard.js ~ line 389 ~ Dashboard ~ previewPDF.route', previewPDF.route)}
-                    {/* <embed src="http://www.africau.edu/images/default/sample.pdf" type="application/pdf"></embed> */}
-
-
-
-
-                    {/* <iframe src={previewPDF.route} style={{ width: '100%' }}></iframe> */}
-
-
+                  <DialogContent sx={{ height: '100vh' }}>
+                    <embed src={`${process.env.PUBLIC_URL}/pdfs/${previewPDF.route}`} type="application/pdf" style={{ width: '100%', height: '99%' }}></embed>
                   </DialogContent>
                 </Dialog>
                 {guides.map((item, key) => (
@@ -409,12 +407,16 @@ export const Dashboard = ({ user }) => {
                         <Tooltip arrow placement="top" title="Previsualizar PDF">
                           <IconButton sx={{ color: '#355bae' }} size="small" onClick={() => handlePreviewPDF(item.guideDoc)}><PictureAsPdfRoundedIcon /></IconButton>
                         </Tooltip>
-                        <Tooltip arrow placement="top" title="Editar">
-                          <IconButton sx={{ color: '#349355' }} size="small" onClick={() => handleEditGuide(item)}><CreateRoundedIcon /></IconButton>
-                        </Tooltip>
-                        <Tooltip arrow placement="top" title="Eliminar">
-                          <IconButton sx={{ color: '#b31a1a' }} size="small" onClick={() => handleDeleteGuide(item.idGuide, item.guideDoc)}><DeleteForeverRoundedIcon /></IconButton>
-                        </Tooltip>
+                        {user.role === 'Instructor' &&
+                          <>
+                            <Tooltip arrow placement="top" title="Editar">
+                              <IconButton sx={{ color: '#349355' }} size="small" onClick={() => handleEditGuide(item)}><CreateRoundedIcon /></IconButton>
+                            </Tooltip>
+                            <Tooltip arrow placement="top" title="Eliminar">
+                              <IconButton sx={{ color: '#b31a1a' }} size="small" onClick={() => handleDeleteGuide(item.idGuide, item.guideDoc)}><DeleteForeverRoundedIcon /></IconButton>
+                            </Tooltip>
+                          </>
+                        }
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -424,41 +426,43 @@ export const Dashboard = ({ user }) => {
           </TableContainer>
         </Box>
       </Grid>
-      <Grid item xs={12} md={5}>
-        <Box className="cardContainerDash">
-          <Typography variant="h5" sx={{ textAlign: 'center' }}>
-            Fichas
-          </Typography>
-          <hr />
-          <Box sx={{ textAlign: 'end', margin: '15px 0px' }}>
-            <Typography variant="body2">
-              {classesGroups?.length} registros encontrados
+      {user.role === 'Instructor' &&
+        <Grid item xs={12} md={5}>
+          <Box className="cardContainerDash">
+            <Typography variant="h5" sx={{ textAlign: 'center' }}>
+              Fichas
             </Typography>
-          </Box>
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell align="center">Id</TableCell>
-                  <TableCell align="center">Nombre</TableCell>
-                  <TableCell align="center">Número de la ficha</TableCell>
-                  <TableCell align="center">Instructor</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {classesGroups?.map((item, key) => (
-                  <TableRow key={`class${key}`}>
-                    <TableCell align="center">{item.id}</TableCell>
-                    <TableCell align="center">{item.nameClass}</TableCell>
-                    <TableCell align="center">{item.numberClass}</TableCell>
-                    <TableCell align="center">{user.firstName?.toUpperCase()} {user.lastName?.toUpperCase()}</TableCell>
+            <hr />
+            <Box sx={{ textAlign: 'end', margin: '15px 0px' }}>
+              <Typography variant="body2">
+                {classesGroups?.length} registros encontrados
+              </Typography>
+            </Box>
+            <TableContainer component={Paper}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell align="center">Id</TableCell>
+                    <TableCell align="center">Nombre</TableCell>
+                    <TableCell align="center">Número de la ficha</TableCell>
+                    <TableCell align="center">Instructor</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      </Grid>
+                </TableHead>
+                <TableBody>
+                  {classesGroups?.map((item, key) => (
+                    <TableRow key={`class${key}`}>
+                      <TableCell align="center">{item.id}</TableCell>
+                      <TableCell align="center">{item.nameClass}</TableCell>
+                      <TableCell align="center">{item.numberClass}</TableCell>
+                      <TableCell align="center">{user.firstName?.toUpperCase()} {user.lastName?.toUpperCase()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        </Grid>
+      }
     </Grid >
   )
 }

@@ -7,8 +7,6 @@ function App() {
   const user = Cookies.get('user') ? JSON.parse(Cookies.get('user')) : false
 
   const RequireLogin = ({ children }) => {
-    console.log('🚀 ~ file: App.js ~ line 11 ~ RequireLogin ~ children', children)
-    console.log('Cookies.get(identification):', Cookies.get('identification'));
     if (!Cookies.get('user')) {
       return <Navigate to="/login" />
     }
